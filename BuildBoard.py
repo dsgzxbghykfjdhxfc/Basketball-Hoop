@@ -1,6 +1,6 @@
 from Mesh import *
 
-def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.1, throw_height = 2
+def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.3, throw_height = 2
               , board_width = 1, board_height = 0.7, step_size = 0.05):
 
     hoopPos = vec(0,hoop_height,hoop_backboard_distance)
@@ -12,7 +12,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.
 
         average_normal = vec(0,0,0)
         # Theta for elevation angle
-        for angle in range(20, 45, 1):
+        for angle in range(30, 60, 1):
             theta = radians(angle)
             # Throwing Part
             throw_dis = contactPos - throwPos
@@ -25,16 +25,16 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.
 
             # Bouncing Part
             bounce_dis = hoopPos - contactPos
-            bounce_speed = inital_speed * 1 # Bounding Constant
+            bounce_speed = inital_speed * 0.9 # Bounding Constant
             disXZ = sqrt(bounce_dis.x ** 2 + bounce_dis.z ** 2)
             sqrtEqu = bounce_speed ** 4 - 2 * G * bounce_dis.y * bounce_speed ** 2 - G ** 2 * disXZ ** 2
             if sqrtEqu < 0: # Impossible to bounce in
                 continue
             tan_theta = (bounce_speed ** 2 - sqrt(sqrtEqu)) / G / disXZ
             bounce_theta = atan(tan_theta)
-            bounce_velocity = vec( bounce_speed * cos(theta) * bounce_dis.x / disXZ,
-                                   bounce_speed * sin(theta),
-                                   bounce_speed * cos(theta) * bounce_dis.z / disXZ)
+            bounce_velocity = vec( bounce_speed * cos(bounce_theta) * bounce_dis.x / disXZ,
+                                   bounce_speed * sin(bounce_theta),
+                                   bounce_speed * cos(bounce_theta) * bounce_dis.z / disXZ)
 
 
             normal = -impact_velocity.norm() + bounce_velocity.norm()
