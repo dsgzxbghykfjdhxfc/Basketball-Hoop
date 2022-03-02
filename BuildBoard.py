@@ -37,7 +37,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
                                    bounce_speed * cos(theta) * bounce_dis.z / disXZ)
 
 
-            normal = impact_velocity.norm() + bounce_velocity.norm()
+            normal = -impact_velocity.norm() + bounce_velocity.norm()
             normal = normal.norm()
 
             average_normal += normal
@@ -49,7 +49,6 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
     def CalcNextPosOnCenterLane(down):
         normal = CalcNormal(down)
         up_dir = normal.cross(vec(1,0,0))
-
         return down + up_dir * step_size / abs(up_dir.y)
 
 
@@ -98,8 +97,6 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
     mesh.Vertices[mid_lane][0] = vec(0, 0, 0)
 
     for h in range(1, height_vertices_count):
-        # Use previous z value as begin value for binary search
-        mesh.Vertices[mid_lane][h] = vec(0, step_size * h, mesh.Vertices[mid_lane][h-1].z)
         mesh.Vertices[mid_lane][h] = CalcNextPosOnCenterLane(mesh.Vertices[mid_lane][h-1])
 
     # Build left side
