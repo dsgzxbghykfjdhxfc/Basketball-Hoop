@@ -1,10 +1,10 @@
 from Mesh import *
 
-def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.2
+def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.1, throw_height = 2
               , board_width = 1, board_height = 0.7, step_size = 0.05):
 
     hoopPos = vec(0,hoop_height,hoop_backboard_distance)
-    throwPos = vec(0,0,throw_distance)
+    throwPos = vec(0,throw_height,throw_distance)
 
     G = 9.81
 
@@ -12,20 +12,20 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
 
         average_normal = vec(0,0,0)
         # Theta for elevation angle
-        for angle in range(30, 60, 1):
+        for angle in range(20, 45, 1):
             theta = radians(angle)
             # Throwing Part
             throw_dis = contactPos - throwPos
             tan_theta = tan(theta)
             disXZ = sqrt(throw_dis.x ** 2 + throw_dis.z ** 2)
-            inital_speed = sqrt(G * disXZ * disXZ * (1 + tan_theta * tan_theta) * 0.5 / (disXZ * tan_theta - throw_dis.y))
+            inital_speed = sqrt(G * disXZ ** 2 * (1 + tan_theta ** 2) * 0.5 / (disXZ * tan_theta - throw_dis.y))
             impact_velocity = vec(  inital_speed * cos(theta) * throw_dis.x / disXZ,
                                     inital_speed * sin(theta) - G  / (inital_speed * cos(theta) / disXZ), 
                                     inital_speed * cos(theta) * throw_dis.z / disXZ )
 
             # Bouncing Part
             bounce_dis = hoopPos - contactPos
-            bounce_speed = inital_speed * 0.9 # Bounding Constant
+            bounce_speed = inital_speed * 1 # Bounding Constant
             disXZ = sqrt(bounce_dis.x ** 2 + bounce_dis.z ** 2)
             sqrtEqu = bounce_speed ** 4 - 2 * G * bounce_dis.y * bounce_speed ** 2 - G ** 2 * disXZ ** 2
             if sqrtEqu < 0: # Impossible to bounce in
@@ -47,19 +47,19 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
 
 
     def CalcNextPosOnCenterLane(down):
-        normal = CalcNormal(down)
+        normal = CalcNormal(mesh.Pos + down)
         up_dir = normal.cross(vec(1,0,0))
         return down + up_dir * step_size / abs(up_dir.y)
 
 
     def CalcLeftSideBottomPos(right):
-        normal = CalcNormal(right)
+        normal = CalcNormal(mesh.Pos + right)
         left_dir = normal.cross(vec(0,1,0))
         return right + left_dir * step_size / abs(left_dir.x)
 
 
     def CalcRightSideBottomPos(left):
-        normal = CalcNormal(left)
+        normal = CalcNormal(mesh.Pos + left)
         right_dir = -normal.cross(vec(0,1,0))
         return left + right_dir * step_size / abs(right_dir.x)
 
@@ -67,7 +67,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
     # Not finished
     def CalcNextPosOnLeftSide(bottom, right):
         avgPos = (bottom + right) * 0.5
-        normal = CalcNormal(avgPos)
+        normal = CalcNormal(avgPos + mesh.Pos)
         # ax + by + cz = d
         d = avgPos.x * normal.x + avgPos.y * normal.y + avgPos.z * normal.z
         x, y = bottom.x, right.y
@@ -77,7 +77,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 2, hoop_backboard_distance = 0.
     # Not finished
     def CalcNextPosOnRightSide(bottom, left):
         avgPos = (bottom + left) * 0.5
-        normal = CalcNormal(avgPos)
+        normal = CalcNormal(avgPos + mesh.Pos)
         # ax + by + cz = d
         d = avgPos.x * normal.x + avgPos.y * normal.y + avgPos.z * normal.z
         x, y = bottom.x, left.y

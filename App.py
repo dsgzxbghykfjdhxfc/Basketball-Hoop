@@ -1,9 +1,6 @@
 from BuildBoard import *
 from vpython import *
 
-throw_distance = 5
-hoop_height = 2
-hoop_backboard_distance = 0.2
 
 def make_axes(length):
     xaxis = arrow(pos=vector(0,0,0),axis=length*vector(1,0,0),color=color.red)
