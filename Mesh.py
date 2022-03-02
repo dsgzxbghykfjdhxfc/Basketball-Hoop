@@ -1,8 +1,6 @@
 from vpython import *
 
 class Mesh:
-    Pos = vec(0,0,0)
-    Vertices = []
 
     def __init__(self, pos : vec, width_cnt : int, height_cnt : int):
         self.Pos = pos
