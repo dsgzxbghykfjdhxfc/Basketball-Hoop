@@ -1,19 +1,50 @@
-from Mesh import *
+from vpython import *
+import meshio
+
+
+class Mesh:
+
+    def __init__(self, pos : vec, width_cnt : int, height_cnt : int):
+        self.Pos = pos
+        self.Vertices = [[vec(0,0,0) for i in range(height_cnt)] for j in range(width_cnt)]
+
+    def BuildVisual(self):
+        for column in self.Vertices:
+            curve(pos = column)
+        for row in range(len(self.Vertices[0])):
+            curve(pos = [column[row] for column in self.Vertices])
+
+    def OutputToFile(self, filename):
+        width, height = len(self.Vertices), len(self.Vertices[0])
+        vertices = [[vtx.x, vtx.y, vtx.z] for column in self.Vertices for vtx in column]
+        triangles = []
+        for i in range(width - 1):
+            for j in range(height - 1):
+                triangles.append([i * height + j, (i + 1) * height + j, i * height + j + 1])
+                triangles.append([i * height + j + 1, (i + 1) * height + j, (i + 1) * height + j + 1])
+
+        mesh = meshio.Mesh(points = vertices, cells = {'triangle' : triangles})
+        mesh.write(filename)
+
+        print(f'Mesh data saved to {filename}')
+
+
 
 def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.3, throw_height = 2
               , board_width = 1, board_height = 0.7, step_size = 0.05):
 
-    hoopPos = vec(0,hoop_height,hoop_backboard_distance)
-    throwPos = vec(0,throw_height,throw_distance)
+    hoopPos = vec(0, hoop_height, hoop_backboard_distance)
+    throwPos = vec(0, throw_height, throw_distance)
 
     G = 9.81
 
     def CalcNormal(contactPos : vec):
 
-        average_normal = vec(0,0,0)
+        normal_sum = vec(0,0,0)
         # Theta for elevation angle
         for angle in range(30, 60, 1):
             theta = radians(angle)
+
             # Throwing Part
             throw_dis = contactPos - throwPos
             tan_theta = tan(theta)
@@ -40,9 +71,9 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.
             normal = -impact_velocity.norm() + bounce_velocity.norm()
             normal = normal.norm()
 
-            average_normal += normal
+            normal_sum += normal
 
-        return average_normal.norm()
+        return normal_sum.norm()
 
 
 
@@ -64,25 +95,22 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.
         return left + right_dir * step_size / abs(right_dir.x)
 
 
-    # Not finished
     def CalcNextPosOnLeftSide(bottom, right):
         avgPos = (bottom + right) * 0.5
         normal = CalcNormal(avgPos + mesh.Pos)
         # ax + by + cz = d
         d = avgPos.x * normal.x + avgPos.y * normal.y + avgPos.z * normal.z
-        x, y = bottom.x, right.y
-        z = (d - normal.x * x - normal.y * y) / normal.z if normal.z != 0 else 0
-        return vec(x, y, z)
+        z = (d - normal.x * bottom.x - normal.y * right.y) / normal.z if normal.z != 0 else 0
+        return vec(bottom.x, right.y, z)
     
-    # Not finished
+
     def CalcNextPosOnRightSide(bottom, left):
         avgPos = (bottom + left) * 0.5
         normal = CalcNormal(avgPos + mesh.Pos)
         # ax + by + cz = d
         d = avgPos.x * normal.x + avgPos.y * normal.y + avgPos.z * normal.z
-        x, y = bottom.x, left.y
-        z = (d - normal.x * x - normal.y * y) / normal.z if normal.z != 0 else 0
-        return vec(x, y, z)
+        z = (d - normal.x * bottom.x - normal.y * left.y) / normal.z if normal.z != 0 else 0
+        return vec(bottom.x, left.y, z)
 
 
 
@@ -93,7 +121,6 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.
 
     # Build the middle line of vertices first
     mid_lane = width_vertices_count // 2
-
     mesh.Vertices[mid_lane][0] = vec(0, 0, 0)
 
     for h in range(1, height_vertices_count):
@@ -116,3 +143,21 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.
             mesh.Vertices[lane][h] = CalcNextPosOnRightSide(mesh.Vertices[lane][h-1], mesh.Vertices[lane-1][h])
 
     return mesh
+
+
+
+if __name__ == '__main__':
+
+    scene = canvas(width=1500, height=650, x=0, y=0, center=vec(0, 0, 0), background=vec(0.1, 0.1, 0.1))
+
+    mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_distance=0.3,
+                  throw_height=2, board_width=1, board_height=0.7, step_size=0.025)
+    mesh.BuildVisual()
+    
+    
+    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.OutputToFile('backboard.obj'))
+
+    while 1:
+        rate(100)
+
+
