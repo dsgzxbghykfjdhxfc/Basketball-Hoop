@@ -4,19 +4,23 @@ import meshio
 
 class Mesh:
 
-    def __init__(self, pos : vec, width_cnt : int, height_cnt : int):
+    def __init__(self, pos, width_cnt, height_cnt):
         self.Pos = pos
         self.Vertices = [[vec(0,0,0) for i in range(height_cnt)] for j in range(width_cnt)]
 
-    def BuildVisual(self):
-        for column in self.Vertices:
+    def BuildVisual(self, level_of_simplicity = 1):
+        for column in self.Vertices[::level_of_simplicity]:
             curve(pos = column)
-        for row in range(len(self.Vertices[0])):
+        for row in range(0, len(self.Vertices[0]), level_of_simplicity):
             curve(pos = [column[row] for column in self.Vertices])
 
-    def OutputToFile(self, filename):
-        width, height = len(self.Vertices), len(self.Vertices[0])
-        vertices = [[vtx.x, vtx.y, vtx.z] for column in self.Vertices for vtx in column]
+    def OutputToFile(self, filename, level_of_simplicity = 1):
+        columns = [c for c in range(0, len(self.Vertices), level_of_simplicity)]
+        rows = [r for r in range(0, len(self.Vertices[0]), level_of_simplicity)]
+
+        vertices = [[self.Vertices[c][r].x, self.Vertices[c][r].y, self.Vertices[c][r].z] for c in columns for r in rows]
+
+        width, height = len(columns), len(rows)
         triangles = []
         for i in range(width - 1):
             for j in range(height - 1):
@@ -151,11 +155,11 @@ if __name__ == '__main__':
     scene = canvas(width=1500, height=650, x=0, y=0, center=vec(0, 0, 0), background=vec(0.1, 0.1, 0.1))
 
     mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_distance=0.3,
-                  throw_height=2, board_width=1, board_height=0.7, step_size=0.025)
-    mesh.BuildVisual()
+                  throw_height=2, board_width=1, board_height=0.7, step_size=0.005)
+    mesh.BuildVisual(level_of_simplicity=10)
     
     
-    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.OutputToFile('backboard.obj'))
+    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.OutputToFile('backboard.obj', level_of_simplicity=10))
 
     while 1:
         rate(100)
