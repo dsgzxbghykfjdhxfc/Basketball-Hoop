@@ -14,30 +14,84 @@ class Mesh:
         for row in range(0, len(self.Vertices[0]), level_of_simplicity):
             curve(pos = [column[row] for column in self.Vertices])
 
-    def OutputToFile(self, filename, level_of_simplicity = 1):
+    def OutputToFile(self, filename, level_of_simplicity = 1, thickness = 0.05):
         columns = [c for c in range(0, len(self.Vertices), level_of_simplicity)]
         rows = [r for r in range(0, len(self.Vertices[0]), level_of_simplicity)]
 
         vertices = [[self.Vertices[c][r].x, self.Vertices[c][r].y, self.Vertices[c][r].z] for c in columns for r in rows]
 
+
         width, height = len(columns), len(rows)
+        to_triangle_index = lambda x, y : x * height + y
+
+        # The curve backboard side
         triangles = []
         for i in range(width - 1):
             for j in range(height - 1):
-                triangles.append([i * height + j, (i + 1) * height + j, i * height + j + 1])
-                triangles.append([i * height + j + 1, (i + 1) * height + j, (i + 1) * height + j + 1])
+                triangles.append([to_triangle_index(i, j), to_triangle_index(i + 1, j), to_triangle_index(i, j + 1)])
+                triangles.append([to_triangle_index(i, j + 1), to_triangle_index(i + 1, j), to_triangle_index(i + 1, j + 1)])
+
+        # The 3D box behind the backboard
+        deepest_point = min(vertices, key=lambda p : p[2])
+        backboard_z = deepest_point[2] - thickness
+
+        top_left, bottom_left, top_right, bottom_right = self.Vertices[0][-1], self.Vertices[0][0],self.Vertices[-1][-1], self.Vertices[-1][0]
+
+        top_left = [top_left.x, top_left.y, backboard_z]
+        bottom_left = [bottom_left.x, bottom_left.y, backboard_z]
+        top_right = [top_right.x, top_right.y, backboard_z]
+        bottom_right = [bottom_right.x, bottom_right.y, backboard_z]
+        
+        vertices.extend([top_left, bottom_left, top_right, bottom_right])
+        l = len(vertices)
+        top_left_idx, bottom_left_idx, top_right_idx, bottom_right_idx = l - 4, l - 3, l - 2, l - 1
+        triangles.append([top_left_idx, bottom_right_idx, bottom_left_idx])
+        triangles.append([top_left_idx, top_right_idx, bottom_right_idx])
+
+
+        width_mid, height_mid = width // 2, height // 2
+
+        # Upper face
+        for x in range(0, width_mid):
+            triangles.append([to_triangle_index(x, height - 1), to_triangle_index(x + 1, height - 1), top_left_idx])
+        for x in range(width_mid, width - 1):
+            triangles.append([to_triangle_index(x, height - 1), to_triangle_index(x + 1, height - 1), top_right_idx])
+        triangles.append([to_triangle_index(width_mid, height - 1), top_right_idx, top_left_idx])
+
+        # Lower face
+        for x in range(0, width_mid):
+            triangles.append([to_triangle_index(x + 1, 0), to_triangle_index(x, 0), bottom_left_idx])
+        for x in range(width_mid, width - 1):
+            triangles.append([to_triangle_index(x + 1, 0), to_triangle_index(x, 0), bottom_right_idx])
+        triangles.append([to_triangle_index(width_mid, 0), bottom_left_idx, bottom_right_idx])
+        
+        # Left face
+        for y in range(0, height_mid):
+            triangles.append([to_triangle_index(0, y), to_triangle_index(0, y + 1), bottom_left_idx])
+        for y in range(height_mid, height - 1):
+            triangles.append([to_triangle_index(0, y), to_triangle_index(0, y + 1), top_left_idx])
+        triangles.append([to_triangle_index(0, height_mid), top_left_idx, bottom_left_idx])
+        
+        # Right face
+        for y in range(0, height_mid):
+            triangles.append([to_triangle_index(width - 1, y + 1), to_triangle_index(width - 1, y), bottom_right_idx])
+        for y in range(height_mid, height - 1):
+            triangles.append([to_triangle_index(width - 1, y + 1), to_triangle_index(width - 1, y), top_right_idx])
+        triangles.append([to_triangle_index(width - 1, height_mid), bottom_right_idx, top_right_idx])
+
 
         mesh = meshio.Mesh(points = vertices, cells = {'triangle' : triangles})
         mesh.write(filename)
+
 
         print(f'Mesh data saved to {filename}')
 
 
 
-def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_distance = 0.3, throw_height = 2
+def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_depth_distance = 0.3, hoop_backboard_height_distance = 0,  throw_height = 2
               , board_width = 1, board_height = 0.7, step_size = 0.05):
 
-    hoopPos = vec(0, hoop_height, hoop_backboard_distance)
+    hoopPos = vec(0, hoop_height - hoop_backboard_height_distance, hoop_backboard_depth_distance)
     throwPos = vec(0, throw_height, throw_distance)
 
     G = 9.81
@@ -154,13 +208,14 @@ if __name__ == '__main__':
 
     scene = canvas(width=1500, height=650, x=0, y=0, center=vec(0, 0, 0), background=vec(0.1, 0.1, 0.1))
 
-    mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_distance=0.3,
-                  throw_height=2, board_width=1, board_height=0.7, step_size=0.005)
+    mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_depth_distance=0.3, hoop_backboard_height_distance=0.05,
+                      throw_height=2, board_width=1, board_height=0.7, step_size=0.005)
     mesh.BuildVisual(level_of_simplicity=10)
     
     
     button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.OutputToFile('backboard.obj', level_of_simplicity=10))
 
+    # Display with vpython
     while 1:
         rate(100)
 
