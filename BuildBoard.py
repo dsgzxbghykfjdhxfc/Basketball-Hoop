@@ -1,3 +1,4 @@
+from numpy import outer
 from vpython import *
 import meshio
 
@@ -14,9 +15,10 @@ class Mesh:
         for row in range(0, len(self.Vertices[0]), level_of_simplicity):
             curve(pos = [column[row] for column in self.Vertices])
 
-    def OutputToFile(self, filename, level_of_simplicity = 1, thickness = 0.05):
+    def OutputToFile(self, filename, level_of_simplicity = 1, thickness = 0.03):
         columns = [c for c in range(0, len(self.Vertices), level_of_simplicity)]
         rows = [r for r in range(0, len(self.Vertices[0]), level_of_simplicity)]
+        width_cnt, height_cnt = len(columns), len(rows)
 
         vertices = [[self.Vertices[c][r].x, self.Vertices[c][r].y, self.Vertices[c][r].z] for c in columns for r in rows]
 
@@ -31,6 +33,39 @@ class Mesh:
                 triangles.append([to_triangle_index(i, j), to_triangle_index(i + 1, j), to_triangle_index(i, j + 1)])
                 triangles.append([to_triangle_index(i, j + 1), to_triangle_index(i + 1, j), to_triangle_index(i + 1, j + 1)])
 
+
+        back_vertices = []
+        for v in vertices:
+            back_vertices.append([v[0], v[1], v[2] - thickness])
+        vertices.extend(back_vertices)
+
+        offset = len(vertices) // 2
+        back_triangles = []
+        for tri in triangles:
+            back_triangles.append([tri[0] + offset, tri[2] + offset, tri[1] + offset])
+        triangles.extend(back_triangles)
+        
+
+        outer_indices = []
+        for i in range(1, height_cnt - 1):
+            outer_indices.append(i)
+        for i in range(width_cnt):
+            outer_indices.append((i + 1) * height_cnt - 1)
+        for i in range(height_cnt - 2, 0, -1):
+            outer_indices.append((width_cnt - 1) * height_cnt + i)
+        for i in range(width_cnt - 1, -1, -1):
+            outer_indices.append(i * height_cnt)
+
+
+        for i in range(len(outer_indices) - 1):
+            triangles.append([outer_indices[i], outer_indices[i + 1], outer_indices[i] + offset])
+            triangles.append([outer_indices[i + 1], outer_indices[i + 1] + offset, outer_indices[i] + offset])
+        
+        triangles.append([outer_indices[-1], outer_indices[0], outer_indices[-1] + offset])
+        triangles.append([outer_indices[0], outer_indices[0] + offset, outer_indices[-1] + offset])
+
+
+        '''
         # The 3D box behind the backboard
         deepest_point = min(vertices, key=lambda p : p[2])
         backboard_z = deepest_point[2] - thickness
@@ -78,7 +113,7 @@ class Mesh:
         for y in range(height_mid, height - 1):
             triangles.append([to_triangle_index(width - 1, y + 1), to_triangle_index(width - 1, y), top_right_idx])
         triangles.append([to_triangle_index(width - 1, height_mid), bottom_right_idx, top_right_idx])
-
+        '''
 
         mesh = meshio.Mesh(points = vertices, cells = {'triangle' : triangles})
         mesh.write(filename)
@@ -209,7 +244,7 @@ if __name__ == '__main__':
     scene = canvas(width=1500, height=650, x=0, y=0, center=vec(0, 0, 0), background=vec(0.1, 0.1, 0.1))
 
     mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_depth_distance=0.3, hoop_backboard_height_distance=0.05,
-                      throw_height=2, board_width=1, board_height=0.7, step_size=0.005)
+                      throw_height=2, board_width=0.9, board_height=0.5, step_size=0.005)
     mesh.BuildVisual(level_of_simplicity=10)
     
     
