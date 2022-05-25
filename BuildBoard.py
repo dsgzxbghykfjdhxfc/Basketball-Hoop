@@ -1,6 +1,7 @@
-from numpy import outer
 from vpython import *
 import meshio
+import os
+import pathlib
 
 
 class Mesh:
@@ -18,18 +19,17 @@ class Mesh:
     def OutputToFile(self, filename, level_of_simplicity = 1, thickness = 0.03):
         columns = [c for c in range(0, len(self.Vertices), level_of_simplicity)]
         rows = [r for r in range(0, len(self.Vertices[0]), level_of_simplicity)]
-        width_cnt, height_cnt = len(columns), len(rows)
 
         vertices = [[self.Vertices[c][r].x, self.Vertices[c][r].y, self.Vertices[c][r].z] for c in columns for r in rows]
 
 
-        width, height = len(columns), len(rows)
-        to_triangle_index = lambda x, y : x * height + y
+        width_cnt, height_cnt = len(columns), len(rows)
+        to_triangle_index = lambda x, y : x * height_cnt + y
 
         # The curve backboard side
         triangles = []
-        for i in range(width - 1):
-            for j in range(height - 1):
+        for i in range(width_cnt - 1):
+            for j in range(height_cnt - 1):
                 triangles.append([to_triangle_index(i, j), to_triangle_index(i + 1, j), to_triangle_index(i, j + 1)])
                 triangles.append([to_triangle_index(i, j + 1), to_triangle_index(i + 1, j), to_triangle_index(i + 1, j + 1)])
 
@@ -66,6 +66,7 @@ class Mesh:
 
 
         '''
+        
         # The 3D box behind the backboard
         deepest_point = min(vertices, key=lambda p : p[2])
         backboard_z = deepest_point[2] - thickness
@@ -120,6 +121,30 @@ class Mesh:
 
 
         print(f'Mesh data saved to {filename}')
+
+    
+    def SaveAsSlices(self, width : int, height : int, level_of_simplicity = 1, thickness = 0.03):
+        
+        width_cnt, height_cnt = len(self.Vertices), len(self.Vertices[0])
+        x_cut_points = [i for i in range(0, width_cnt, (width_cnt - 1) // width)]    # length should be width+1
+        y_cut_points = [i for i in range(0, height_cnt, (height_cnt - 1) // height)] # length should be height+1
+
+
+        sub_meshes = [[Mesh(vec(0,0,0), 0, 0) for i in range(height)] for j in range(width)]
+        for i in range(width):
+            for j in range(height):
+                for column in self.Vertices[x_cut_points[i] : x_cut_points[i + 1] + 1]:
+                    sub_meshes[i][j].Vertices.append(column[y_cut_points[j] : y_cut_points[j + 1] + 1])
+
+        os.makedirs('Models', exist_ok=True)
+
+        for x in range(width):
+            for y in range(height):
+                sub_meshes[x][y].OutputToFile(f'Models/slice-{x + y * width}.obj', level_of_simplicity, thickness)
+
+
+        self.OutputToFile('Models/backboard.obj', level_of_simplicity, thickness)
+        
 
 
 
@@ -245,10 +270,10 @@ if __name__ == '__main__':
 
     mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_depth_distance=0.3, hoop_backboard_height_distance=0.05,
                       throw_height=2, board_width=0.9, board_height=0.5, step_size=0.005)
-    mesh.BuildVisual(level_of_simplicity=10)
+    mesh.BuildVisual(level_of_simplicity=5)
     
     
-    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.OutputToFile('backboard.obj', level_of_simplicity=10))
+    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.SaveAsSlices(4, 2, level_of_simplicity=5))
 
     # Display with vpython
     while 1:
