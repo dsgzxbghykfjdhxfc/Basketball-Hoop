@@ -16,6 +16,7 @@ class Mesh:
         for row in range(0, len(self.Vertices[0]), level_of_simplicity):
             curve(pos = [column[row] for column in self.Vertices])
 
+
     def OutputToFile(self, filename, level_of_simplicity = 1, thickness = 0.03):
         columns = [c for c in range(0, len(self.Vertices), level_of_simplicity)]
         rows = [r for r in range(0, len(self.Vertices[0]), level_of_simplicity)]
@@ -160,7 +161,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_depth_distanc
 
         normal_sum = vec(0,0,0)
         # Theta for elevation angle
-        for angle in range(30, 60, 1):
+        for angle in range(30, 65, 1):
             theta = radians(angle)
 
             # Throwing Part
@@ -218,7 +219,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_depth_distanc
         normal = CalcNormal(avgPos + mesh.Pos)
         # ax + by + cz = d
         d = avgPos.x * normal.x + avgPos.y * normal.y + avgPos.z * normal.z
-        z = (d - normal.x * bottom.x - normal.y * right.y) / normal.z if normal.z != 0 else 0
+        z = (d - normal.x * bottom.x - normal.y * right.y) / normal.z if normal.z != 0 else avgPos.z
         return vec(bottom.x, right.y, z)
     
 
@@ -227,7 +228,7 @@ def BuildBoard(throw_distance = 5, hoop_height = 3, hoop_backboard_depth_distanc
         normal = CalcNormal(avgPos + mesh.Pos)
         # ax + by + cz = d
         d = avgPos.x * normal.x + avgPos.y * normal.y + avgPos.z * normal.z
-        z = (d - normal.x * bottom.x - normal.y * left.y) / normal.z if normal.z != 0 else 0
+        z = (d - normal.x * bottom.x - normal.y * left.y) / normal.z if normal.z != 0 else avgPos.z
         return vec(bottom.x, left.y, z)
 
 
@@ -268,12 +269,12 @@ if __name__ == '__main__':
 
     scene = canvas(width=1500, height=650, x=0, y=0, center=vec(0, 0, 0), background=vec(0.1, 0.1, 0.1))
 
-    mesh = BuildBoard(throw_distance=5, hoop_height=3, hoop_backboard_depth_distance=0.3, hoop_backboard_height_distance=0.05,
-                      throw_height=2, board_width=0.9, board_height=0.5, step_size=0.005)
+    mesh = BuildBoard(throw_distance=4, hoop_height=2, hoop_backboard_depth_distance=0.15, hoop_backboard_height_distance=0,
+                      throw_height=2, board_width=0.6, board_height=0.4, step_size=0.005)
     mesh.BuildVisual(level_of_simplicity=5)
     
     
-    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.SaveAsSlices(4, 2, level_of_simplicity=5))
+    button(text='Save mesh', pos = scene.title_anchor, bind = lambda btn: mesh.SaveAsSlices(3, 2, level_of_simplicity=5))
 
     # Display with vpython
     while 1:
